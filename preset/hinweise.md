@@ -1,0 +1,5 @@
+werden von uns beim testen auf den ursprünglichen Stand zurückgesetzt. Es ist deshalb nicht empfehlenswert diese zu verändern. In predict.py ist für die Funktion `predict_labels` das Interface festgelegt, das wir für die Evaluierung verwenden.
+
+`predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[str], model_name : str='model.npy',is_binary_classifier : bool=False) -> List[Tuple[str,str]]`
+
+Insbesondere den `model_name` könnt ihr verwenden um bei der Abgabe verschiedene Modelle zu kennzeichnen, welche zum Beispiel durch eure Ordnerstruktur dargestellt werden. Der Parameter `is_binary_classifier` ermöglicht es zu entscheiden, ob mit dem Modell nur die zwei Hauptlabels "Atrial Fibrillation ['A']" und "Normal ['N']" klassfiziert werden (binärer Klassifikator), oder alle vier Label.
