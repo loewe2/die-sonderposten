@@ -41,26 +41,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
 
 #------------------------------------------------------------------------------
 # Euer Code ab hier  
-    with open(model_name, 'rb') as f:  
-        th_opt = np.load(f)         # Lade simples Model (1 Parameter)
 
-    detectors = Detectors(fs)        # Initialisierung des QRS-Detektors
 
-    predictions = list()
-    
-    for idx,ecg_lead in enumerate(ecg_leads):
-        r_peaks = detectors.hamilton_detector(ecg_lead)     # Detektion der QRS-Komplexe
-        sdnn = np.std(np.diff(r_peaks)/fs*1000) 
-        if sdnn < th_opt:
-            predictions.append((ecg_names[idx], 'N'))
-        else:
-            predictions.append((ecg_names[idx], 'A'))
-        if ((idx+1) % 100)==0:
-            print(str(idx+1) + "\t Dateien wurden verarbeitet.")
-            
-            
 #------------------------------------------------------------------------------    
     return predictions # Liste von Tupels im Format (ecg_name,label) - Muss unverändert bleiben!
-                               
-                               
-        

@@ -25,7 +25,7 @@ if __name__=='__main__':
     with open('teamname.txt') as team_file:
         teamname = team_file.readline()[:-1]
         
-    filename =   args.output_dir + teamname + '.csv'  
+    filename =   args.output_dir + teamname + '.csv'
     if not os.path.exists(filename):
         with open(filename, mode='w', newline='') as scores_file:
             scores_writer = csv.writer(scores_file, delimiter=';')
@@ -44,5 +44,3 @@ if __name__=='__main__':
         matrix_writer.writerow([''] + pred_names)
         for tn in true_names:
             matrix_writer.writerow([tn] + list(Conf_Matrix[tn].values()))
-
-        
