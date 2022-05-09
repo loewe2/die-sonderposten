@@ -40,7 +40,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
     '''
 
 #------------------------------------------------------------------------------
-# Euer Code ab hier  
+# Euer Code ab hier
 
 
 #------------------------------------------------------------------------------    
