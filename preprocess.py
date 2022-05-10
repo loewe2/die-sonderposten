@@ -182,36 +182,3 @@ def ecg_season_trend(data, plot_out=False):  # z.B. ecg_season_trend(ecg_leads[1
         decompose_result.plot()
 
     return trend, seasonal, residual
-
-#%%
-threshold = 3
-outlier = []
-for i in data:
-    z = (i-mean)/std
-    if z > threshold:
-        outlier.append(i)
-
-#%%
-# Data Generator
-
-# start=-0.5
-# end=1.5
-# steps = 100
-
-# sigma = 0.3
-# level=5
-
-# x = np.arange(start, end, 1/steps)
-# y1 = np.exp(2*x) + sigma*np.random.randn(x.shape[0])
-# y2 = np.exp(0.1*x)+2 + sigma*np.random.randn(x.shape[0])
-
-# plt.plot(x, y)
-# plt.plot(x, yhat)
-# plt.savefig('/home/tim/Schreibtisch/filename.png', dpi=600)
-
-# %%
-aa = 9
-
-plt.hist(ecg_leads[a])
-
-# %%
