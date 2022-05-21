@@ -67,7 +67,7 @@ Noise reduction
 
 def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
     '''# Kalman Filter (best filter)
-    Measurement variance R(lower=faster convergence)... should be between 0.01 – 1 
+    Measurement variance R (lower=faster convergence)... should be between 0.01 – 1 
     Source: https://scipy-cookbook.readthedocs.io/items/KalmanFiltering.html
 
     Examples: ecg_denoise_kalman(ecg_leads[1])
@@ -98,7 +98,7 @@ def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
         K[k] = Pminus[k]/(Pminus[k]+R)
         yhat[k] = yhatminus[k]+K[k]*(y[k]-yhatminus[k])
         P[k] = (1-K[k])*Pminus[k]
-    return data
+    return yhat
 
 def fft_lowpass(fft_centered, freq_idx, cutoff_freq=30, method='gauß'):
     '''# Lowpass-Filter in frequency domain
