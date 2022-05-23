@@ -5,6 +5,7 @@ Preprocessing of the input data
 @author: Julian Hüsselmann
 '''
 
+#%%
 import numpy as np
 import pandas as pd
 import scipy.fft
@@ -27,7 +28,6 @@ def ecg_to_df(data, names):
     df = dict(zip(names, data))
     ecg_leads_df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in df.items()]))
 
-
 '''
 #################################
 Single operators (input: array)
@@ -35,7 +35,7 @@ Single operators (input: array)
 '''
 
 '''
-Normalize
+Normalize & Outlier
 '''
 
 def ecg_norm(data):
@@ -66,7 +66,7 @@ Noise reduction
 '''
 
 def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
-    '''# Kalman Filter (best filter)
+    '''# Kalman Filter
     Measurement variance R (lower=faster convergence)... should be between 0.01 – 1 
     Source: https://scipy-cookbook.readthedocs.io/items/KalmanFiltering.html
 
@@ -100,24 +100,58 @@ def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
         P[k] = (1-K[k])*Pminus[k]
     return yhat
 
-def fft_lowpass(fft_centered, freq_idx, cutoff_freq=30, method='gauß'):
-    '''# Lowpass-Filter in frequency domain
-    Always run ecg_furier(..., center=True), then ecg_invfurier(..., center=True)!!
-    "Hard" can create oscillations e.g. for 20-30hz
 
-    Examples: fft_lowpass(data_ftt, freq, 40)
+def ecg_season_trend(data, plot_out=False):
+    '''# Calculate trend & saisonality
+    Usually the initial outliers can be removed by substracting
+    the trend from the original data (alternatively: add the risidual to the original data)
+
+    Examples: ecg_season_trend(ecg_leads[1])
     '''
-    if method == 'hard': 
-        #idx
-        right_f = np.where(freq_idx > cutoff_freq)[0]
-        left_f = np.where(freq_idx < -cutoff_freq)[0]
+    series = pd.Series(data)
+    decompose_result = seasonal_decompose(series, period=fs, model="additive")
 
-        # Filtering
-        fft_centered[right_f] = 0
-        fft_centered[left_f] = 0
+    trend = decompose_result.trend
+    seasonal = decompose_result.seasonal
+    residual = decompose_result.resid
+
+    if plot_out == True:
+        decompose_result.plot()
+
+    return trend, seasonal, residual
+
+def ecg_denoise_spectrum(fft_centered, freq_idx, lower_freq=0, upper_freq=20, method='gauß'):
+    '''# Lowpass-Filter in frequency domain
+    Always run ecg_furier(..., center=True) before and ecg_invfurier(..., center=True) after!!
+    "Hard" can create oscillations around 20Hz
+
+    Examples: ecg_denoise_spectrum(data_ftt, freq, 20, 50)
+    '''
+    #Create Index-Vector (0: block, 1: pass frequencies)
+    right_p = np.where(freq_idx > upper_freq)[0]
+    left_p = np.where((0 > freq_idx) & (freq_idx < lower_freq))[0]
+    right_n = np.where((-lower_freq < freq_idx) & (freq_idx < 0))[0]
+    left_n = np.where(freq_idx < -upper_freq)[0]
+
+    idx_shape = np.ones(freq_idx.shape)
+    idx_shape[right_p] = 0
+    idx_shape[left_p] = 0
+    idx_shape[right_n] = 0
+    idx_shape[left_n] = 0
+
+    # Filtering
+    if method == 'hard':
+        fft_centered = fft_centered*idx_shape
     elif method == 'gauß':
-        gauß_k = np.exp(-np.power(freq_idx - 0, 2.) / (2 * np.power(cutoff_freq, 2.)))
-        fft_centered = fft_centered*gauß_k
+        cutoff_freq = np.abs(upper_freq - lower_freq)
+        mean = lower_freq+(upper_freq-lower_freq)/2
+
+        gauß_l = np.exp(-np.power(freq_idx + mean, 2.) /
+                        (2 * np.power(cutoff_freq, 2.)))
+        gauß_r = np.exp(-np.power(freq_idx - mean, 2.) /
+                        (2 * np.power(cutoff_freq, 2.)))
+        gauß = gauß_l+gauß_r
+        fft_centered = fft_centered*gauß
     
     fft_filtered = fft_centered
     return fft_filtered
@@ -133,7 +167,7 @@ def ecg_denoise_wavelet(data, level=2):
     return denoised
 
 '''
-More
+Spectrum
 '''
 
 def ecg_furier(data, fs, lim=None, plot_out=False, center=True):
@@ -180,6 +214,7 @@ def ecg_invfurier(data, center=True):
 
 def ecg_ceptrum(data, fs):
     '''# Ceptrum-Transformation
+    INvestigate periodic structures in frequency spectra
 
     Examples: ecg_ceptrum(data_fft, fs)
     '''
@@ -188,6 +223,10 @@ def ecg_ceptrum(data, fs):
     data_ceptrum, freq = ecg_furier(data_ceptrum, fs, center=False)
     data_ceptrum = np.abs(data_ceptrum)**2
     return data_ceptrum
+
+'''
+More
+'''
 
 def ecg_plot(data, start=0, end=None):
     '''# Time representation of data
@@ -205,21 +244,4 @@ def ecg_plot(data, start=0, end=None):
     axs[0].set_xlim(start, end)
 
     axs[1].hist(data, bins=40)
-
-
-def ecg_season_trend(data, plot_out=False):
-    '''# Calculate trend & saisonality
-
-    Examples: ecg_season_trend(ecg_leads[1])
-    '''
-    series = pd.Series(data)
-    decompose_result = seasonal_decompose(series, period=fs, model="additive")
-
-    trend = decompose_result.trend
-    seasonal = decompose_result.seasonal
-    residual = decompose_result.resid
-
-    if plot_out == True:
-        decompose_result.plot()
-
-    return trend, seasonal, residual
+    return None
