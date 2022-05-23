@@ -10,8 +10,6 @@ from feature_extraction import *
 from wettbewerb import load_references, save_predictions
 from preprocess import *
 
-from ecgdetectors import Detectors
-
 # %%
 # Import the data
 ecg_leads, ecg_labels, fs, ecg_names = load_references(folder='training')
@@ -55,6 +53,8 @@ np.save("variables/peaks_std.npy", peaks_std)
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 for i in range(0,100):
+    dimen = peaks_reshaped[i]
+    std = peaks_std[i]
     if ecg_labels[i] == "N":
         color='green'
     if ecg_labels[i] == "A":
