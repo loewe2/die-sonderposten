@@ -61,6 +61,25 @@ def ecg_outlier(data, lower=0.001, upper=0.999):
     data[index_up] = np.quantile(data, upper)
     data[index_low] = np.quantile(data, lower)
 
+def ecg_season_trend(data, fs, plot_out=False):
+    '''# Calculate trend & saisonality
+    Initial outliers can be removed by substracting
+    the trend from the original data (alternatively: add the risidual to the original data)
+
+    Examples: ecg_season_trend(ecg_leads[1], fs)
+    '''
+    series = pd.Series(data)
+    decompose_result = seasonal_decompose(series, period=fs, model="additive")
+
+    trend = decompose_result.trend
+    seasonal = decompose_result.seasonal
+    residual = decompose_result.resid
+
+    if plot_out == True:
+        decompose_result.plot()
+
+    return trend, seasonal, residual
+
 '''
 Noise reduction
 '''
@@ -99,26 +118,6 @@ def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
         yhat[k] = yhatminus[k]+K[k]*(y[k]-yhatminus[k])
         P[k] = (1-K[k])*Pminus[k]
     return yhat
-
-
-def ecg_season_trend(data, plot_out=False):
-    '''# Calculate trend & saisonality
-    Usually the initial outliers can be removed by substracting
-    the trend from the original data (alternatively: add the risidual to the original data)
-
-    Examples: ecg_season_trend(ecg_leads[1])
-    '''
-    series = pd.Series(data)
-    decompose_result = seasonal_decompose(series, period=fs, model="additive")
-
-    trend = decompose_result.trend
-    seasonal = decompose_result.seasonal
-    residual = decompose_result.resid
-
-    if plot_out == True:
-        decompose_result.plot()
-
-    return trend, seasonal, residual
 
 def ecg_denoise_spectrum(fft_centered, freq_idx, lower_freq=0, upper_freq=20, method='gauß'):
     '''# Lowpass-Filter in frequency domain
@@ -236,6 +235,7 @@ def ecg_plot(data, start=0, end=None):
     '''
     if end is None:
         end = data.shape[0]
+    
     fig, axs = plt.subplots(1, 2, sharey=False, tight_layout=True)
 
     axs[0].plot(np.arange(0, data.shape[0]), data)
