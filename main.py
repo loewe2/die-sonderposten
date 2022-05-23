@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Preprocessing of the input data
+Main script
 
 @author: Julian Hüsselmann
 '''
