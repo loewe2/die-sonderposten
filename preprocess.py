@@ -227,6 +227,20 @@ def ecg_ceptrum(data, fs):
 More
 '''
 
+def ecg_empty(size, number):
+    '''# Creates an empty array based on size
+    Number must equal the output variables
+
+    Examples: peaks, std, st1, st2 = ecg_empty(ecg_leads, 4)
+    '''
+    container = [None]*number
+    if number > 1:
+        for i in range(0, number):
+            container[i] = [None]*len(size)
+    else:
+        container = [None]*len(size)
+    return container
+
 def ecg_plot(data, start=0, end=None):
     '''# Time representation of data
     Start indicates, which index it starts (analogous for end).
@@ -240,7 +254,7 @@ def ecg_plot(data, start=0, end=None):
 
     axs[0].plot(np.arange(0, data.shape[0]), data)
     means = np.mean(data)
-    axs[0].axhline(y=means)
+    axs[0].axhline(y=means, color="gray", linestyle="--")
     axs[0].set_xlim(start, end)
 
     axs[1].hist(data, bins=40)
