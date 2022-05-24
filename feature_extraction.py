@@ -9,6 +9,10 @@ import numpy as np
 from ecgdetectors import Detectors
 from preprocess import *
 
+'''
+Detection
+'''
+
 def ecg_detect(data, fs, method="pan"):
     '''# Detect QRS-complexes
 
@@ -37,9 +41,14 @@ def ecg_detect(data, fs, method="pan"):
 
     return peaks, diff
 
+
+'''
+Alteration
+'''
+
 def ecg_poincare(peaks_diff, dim=2):
     '''# Assign a dimension to each difference and repeat it
-
+    Columnwise x, y, z, ... dimensions
     Examples: ecg_poincare(r_peaks_diff[1], 2)
     '''
 
@@ -95,19 +104,25 @@ def ecg_snippets(data, peaks, peaks_diff, plot_out=False):
 
     return period_container, time_container
 
+def ecg_diff_mean(data):
+    '''# Calculates the centroid (mean), row-wise
+    Examples: reject_outliers(peaks_reshaped[0])
+    '''
+    mean = np.mean(data, axis=0)
+    return mean
+
 '''
 Plot
 '''
 
-
-def plot_diff(peaks_reshaped, peaks_std, start, to, ecg_labels, azim, elev):
+def plot_diff(peaks_reshaped, peaks_std, start, end, ecg_labels, azim, elev):
     '''# Plot the feature space
 
     Examples: plot_diff(peaks_reshaped, peaks_std, 0, 100, ecg_labels, 0, 90)
     '''
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    for i in range(start, to):
+    for i in range(start, end):
         if ecg_labels[i] == "N":
             color = 'green'
         if ecg_labels[i] == "A":

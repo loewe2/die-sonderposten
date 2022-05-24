@@ -61,6 +61,13 @@ def ecg_outlier(data, lower=0.001, upper=0.999):
     data[index_up] = np.quantile(data, upper)
     data[index_low] = np.quantile(data, lower)
 
+def reject_outliers(data, m=2):
+    '''# Remove outliers (only for vectors)
+    Source: https://stackoverflow.com/questions/11686720/is-there-a-numpy-builtin-to-reject-outliers-from-a-list
+    Examples: reject_outliers(peaks_reshaped[0][1])
+    '''
+    return data[abs(data - np.mean(data)) < m * np.std(data)]
+
 def ecg_season_trend(data, fs, plot_out=False):
     '''# Calculate trend & saisonality
     Initial outliers can be removed by substracting
