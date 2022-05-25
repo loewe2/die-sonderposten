@@ -2,7 +2,7 @@
 '''
 Preprocessing of the input data
 
-@author: Julian Hüsselmann
+@author: Julian Hüsselmann, ...
 '''
 
 #%%
@@ -13,26 +13,6 @@ import matplotlib.pylab as plt
 from skimage.restoration import denoise_wavelet
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
-
-'''
-#################################
-Batch Operators (input: List of arrays)
-#################################
-'''
-
-def ecg_to_df(data, names):
-    '''# Create pandas Dataframe columnweise
-
-    Examples: ecg_to_df(ecg_leads, ecg_names)
-    '''
-    df = dict(zip(names, data))
-    ecg_leads_df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in df.items()]))
-
-'''
-#################################
-Single operators (input: array)
-#################################
-'''
 
 '''
 Normalize & Outlier
@@ -47,7 +27,6 @@ def ecg_norm(data):
     sc = MinMaxScaler(feature_range=(0, 1))
     scaled = sc.fit_transform(data.reshape(-1, 1)).reshape(-1, )
     return scaled
-
 
 def ecg_outlier(data, lower=0.001, upper=0.999):
     '''# Removes outliers by Z-Score

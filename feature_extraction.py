@@ -2,7 +2,7 @@
 '''
 Different methods to extract the features
 
-@author: Julian Hüsselmann
+@author: Julian Hüsselmann, ...
 '''
 
 import numpy as np
