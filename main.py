@@ -12,9 +12,9 @@ from preprocess import *
 
 from sklearn import preprocessing
 from sklearn.svm import SVC
+from joblib import dump, load
 
 import neurokit2 as nk
-
 # %%
 '''
 Data import
@@ -29,7 +29,6 @@ idx_O = [i for i in range(len(ecg_labels)) if ecg_labels[i] == 'O']
 le = preprocessing.LabelEncoder()
 le.fit(ecg_labels)
 ecg_labels_enc = le.transform(ecg_labels)
-
 
 '''
 Feature extraction
@@ -90,23 +89,37 @@ features = features.dropna(axis=1, how="all")
 # Save variable
 features.to_pickle("variables/features")
 
-
 #%%
 '''
 Classificators
 '''
+# Nur Zweiklassenproblem
+features = features[features.iloc[:, 1] != "~"]
+features = features[features.iloc[:, 1] != "O"]
+
 # SVM - Train
-X = features
-y = ecg_labels_enc
-clf = SVC(C=1, kernel='rbf', gamma='auto', cache_size=500)
-clf.fit(X.iloc[0:60, 2:], y[0:60])
+X = features.iloc[0:35, 2:16]
+y = features.iloc[0:35, 1]
+X2 = features.iloc[35:48, 2:16]
+y2 = features.iloc[35:48, 1]
+clf = SVC(C=0.01, kernel='rbf', gamma='auto', cache_size=500)
+clf.fit(X, y)
+dump(clf, "variables/svm_model.joblib")
 
 #%%
 # SVM - Predict
-pred = clf.predict(X.iloc[60:, 2:])
-clf.decision_function(X.iloc[60:, 2:])
+pred = clf.predict(X2)
+clf.decision_function(X2)
 
 #%%
 # SVM - Debug
-clf.score(X.iloc[60:, 2:], y[60:80])
+clf.score(X2, y2)
 clf.get_params()
+
+#%%
+from sklearn.decomposition import FactorAnalysis
+pca = PCA(n_components=2)
+pca.fit(X)
+print(pca.components_)
+aa = pd.DataFrame(
+    pca.components_, columns=X.columns, index=['PC-1', 'PC-2'])
