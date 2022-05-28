@@ -15,6 +15,7 @@ Detection
 
 def ecg_detect(data, fs, method="pan"):
     '''# Detect QRS-complexes
+    Besser: _, waves_peak = nk.ecg_delineate(processed_data["ECG_Clean"],info['ECG_R_Peaks'],sampling_rate=fs,method="dwt",show=False,show_type='peaks')
 
     Examples: ecg_plot(ecg_leads[1])
     '''
@@ -61,7 +62,7 @@ def ecg_poincare(peaks_diff, dim=2):
 
 def ecg_snippets(data, peaks, peaks_diff, plot_out=False):
     '''# Segmentation: Creates time based snippets (cuts the whole signal in single periods)
-
+    Besser: epochs = nk.ecg_segment(cleaned_ecg, rpeaks=True, sampling_rate=250, show=False)
     Examples: ecg_snippets(ecg_leads[1], peaks[1], peaks_diff[1], plot_out=False)
     '''
     # Define borders left and right of each detected peak (half of every difference between the peaks)

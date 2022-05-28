@@ -28,6 +28,17 @@ def ecg_norm(data):
     scaled = sc.fit_transform(data.reshape(-1, 1)).reshape(-1, )
     return scaled
 
+def pandas_normalize(data):
+    '''# Normalize data
+
+    Examples: pandas_normalize(pd)
+    '''
+    scaler = MinMaxScaler()
+    scaler.fit(data)
+    scaled = scaler.transform(data)
+    normalized = pd.DataFrame(scaled, columns=data.columns)
+    return normalized
+
 def ecg_outlier(data, lower=0.001, upper=0.999):
     '''# Removes outliers by Z-Score
     Lower + Upper must equal 1!
