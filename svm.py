@@ -153,9 +153,9 @@ plot_decision_regions(X=X_train.values,
                       clf=clf,
                       legend=2)
 
-#%%
-x = features.iloc[:, 18]
-y = features.iloc[:, 25]
+#%% Feature investigation
+x = features.iloc[:, 1]
+y = features.iloc[:, 27]
 label = features.iloc[:, 1]
 colors = ['Red', 'Blue']
 
