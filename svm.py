@@ -17,6 +17,9 @@ from sklearn import preprocessing
 from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 
+from mlxtend.plotting import plot_decision_regions
+from sklearn.metrics import *
+
 # %%
 '''
 Data import
@@ -42,7 +45,7 @@ for p, ecg_lead in enumerate(ecg_leads):
     d.append(
         {
             'ecg_data': ecg_names[p],
-            'label': ecg_labels[p]
+            'label': ecg_labels_enc[p]
         }
     )
 features_names = pd.DataFrame(d)
@@ -95,25 +98,30 @@ features = features.drop(index=bad_sector)
 features = features.dropna(axis=1, how="all")
 features = features.dropna(axis=0, how="all", subset=features.iloc[:, 2:].columns)
 
+#%%
 # Save variable
+features_hrv_freq.to_pickle("variables/features_hrv_freq")
+features_hrv_time.to_pickle("variables/features_hrv_time")
 features.to_pickle("variables/features")
 np.save("variables/bad_sector.npy", bad_sector)
+#features = pd.read_pickle("variables/features")
 
 #%%
 '''
 Classificators
 '''
 # Nur Zweiklassenproblem
-features = features[features.iloc[:, 1] != "~"]
-features = features[features.iloc[:, 1] != "O"]
+features = features[features.iloc[:, 1] != 2]
+features = features[features.iloc[:, 1] != 3]
 
+#%%
 # SVM - Train
-split = 4000
+split = 1000
 X_train = features.iloc[0:split, 2:]
 y_train = features.iloc[0:split, 1]
 X_test = features.iloc[split:, 2:]
 y_test = features.iloc[split:, 1]
-clf = SVC(C=0.1, kernel='rbf', gamma='auto', cache_size=500)
+clf = SVC(C=1, kernel='rbf', gamma='auto', cache_size=500)
 clf.fit(X_train, y_train)
 dump(clf, "variables/svm_model.joblib")
 
@@ -124,8 +132,10 @@ clf.decision_function(X_test)
 
 #%%
 # SVM - Debug
-clf.score(X_test, y_test)
-clf.get_params()
+print("Accuracy: " + str(accuracy_score(y_test, pred)))
+print("Recall: " + str(recall_score(y_test, pred)))
+print("Precision: " + str(precision_score(y_test, pred)))
+print("F1: " + str(f1_score(y_test, pred)))
 
 #%% Get most important features (10, 14, 15, 18, 21, 22, 25, 26)
 pca = PCA(n_components=2)
@@ -134,3 +144,25 @@ features_series = pd.DataFrame(pca.components_, columns=X_train.columns)
 features_series = features_series.mul(pca.explained_variance_ratio_,axis=0).abs().sum().sort_values(ascending=False)
 ax = features_series.plot.bar(x='', y='', rot=0)
 plt.xticks(rotation=90)
+
+#%%
+# Plot SVM
+# Source: https://stackoverflow.com/questions/43284811/plot-svm-with-matplotlib
+plot_decision_regions(X=X_train.values,
+                      y=y_train.values,
+                      clf=clf,
+                      legend=2)
+
+#%%
+x = features.iloc[:, 18]
+y = features.iloc[:, 25]
+label = features.iloc[:, 1]
+colors = ['Red', 'Blue']
+
+fig = plt.figure(figsize=(8, 8))
+plt.scatter(x, y, c=label, cmap=matplotlib.colors.ListedColormap(colors))
+
+cb = plt.colorbar()
+loc = np.arange(0, max(label), max(label)/float(len(colors)))
+cb.set_ticks(loc)
+cb.set_ticklabels(colors)
