@@ -1,6 +1,10 @@
-scipy==1.4.1
-matplotlib==3.3.0
-numpy==1.18.5
-py-ecg-detectors==1.0.2
-pandas==1.1.0
-mysql-connector-python==8.0.26
+scipy==1.8.0
+scikit-learn==1.0.1
+scikit-image==0.19.2
+matplotlib==3.5.2
+numpy==1.22.4
+py-ecg-detectors==1.2.0
+pandas==1.4.2
+neurokit==0.2.0
+joblib==1.1.0
+statsmodels==0.13.2

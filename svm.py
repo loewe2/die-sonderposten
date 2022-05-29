@@ -10,11 +10,13 @@ from feature_extraction import *
 from wettbewerb import load_references, save_predictions
 from preprocess import *
 
-from sklearn import preprocessing
-from sklearn.svm import SVC
+import neurokit2 as nk
 from joblib import dump, load
 
-import neurokit2 as nk
+from sklearn import preprocessing
+from sklearn.svm import SVC
+from sklearn.decomposition import PCA
+
 # %%
 '''
 Data import
@@ -36,7 +38,7 @@ Feature extraction
 #%%
 # Get names and labels
 d = []
-for p in range(0,80):
+for p, ecg_lead in enumerate(ecg_leads):
     d.append(
         {
             'ecg_data': ecg_names[p],
@@ -45,22 +47,27 @@ for p in range(0,80):
     )
 features_names = pd.DataFrame(d)
 
+bad_sector = []
 # Feature arrays from Neurokit2
-for j in range(0, 80):
-    processed_data, info = nk.ecg_process(ecg_leads[j], sampling_rate=fs)
-    hrv_time = nk.hrv_time(info['ECG_R_Peaks'], sampling_rate=fs, show=False)
-    hrv_freq = nk.hrv_frequency(info['ECG_R_Peaks'], sampling_rate=fs, show=False, normalize=True)
-    #(too long to load): complexity, info_c = nk.complexity(ecg_leads[j], which=["fast", "medium"])
-    #(too long to load): delay, parameters = nk.complexity_delay(ecg_leads[j], delay_max=100, show=False, method="rosenstein1994")
-    if j == 0:
-        features_hrv_time = hrv_time
-        features_hrv_freq = hrv_freq
-        #features_comp = complexity
-    else:
-        features_hrv_time = pd.concat([features_hrv_time, hrv_time])
-        features_hrv_freq = pd.concat([features_hrv_freq, hrv_freq])
-        #features_comp = pd.concat([features_comp, complexity])
-    print(j)
+for j, ecg_lead in enumerate(ecg_leads):
+    try:
+        processed_data, info = nk.ecg_process(ecg_leads[j], sampling_rate=fs)
+        hrv_time = nk.hrv_time(info['ECG_R_Peaks'], sampling_rate=fs, show=False)
+        hrv_freq = nk.hrv_frequency(info['ECG_R_Peaks'], sampling_rate=fs, show=False, normalize=True)
+        #(too long to load): complexity, info_c = nk.complexity(ecg_leads[j], which=["fast", "medium"])
+        #(too long to load): delay, parameters = nk.complexity_delay(ecg_leads[j], delay_max=100, show=False, method="rosenstein1994")
+        if j == 0:
+            features_hrv_time = hrv_time
+            features_hrv_freq = hrv_freq
+            #features_comp = complexity
+        else:
+            features_hrv_time = pd.concat([features_hrv_time, hrv_time])
+            features_hrv_freq = pd.concat([features_hrv_freq, hrv_freq])
+            #features_comp = pd.concat([features_comp, complexity])
+        print(j)
+    except:
+        bad_sector.append(j)
+        continue
 
 '''
 Preprocess
@@ -76,18 +83,21 @@ features_hrv_freq = pandas_normalize(features_hrv_freq)
 features_hrv_time = pandas_normalize(features_hrv_time)
 #features_comp = pandas_normalize(features_comp)
 
-# Merge all feature arrays
+# Merge all feature arrays horizontally
 features_names = features_names.reset_index(drop=True)
 features_hrv_time = features_hrv_time.reset_index(drop=True)
 features_hrv_freq = features_hrv_freq.reset_index(drop=True)
 #features_comp = features_comp.reset_index(drop=True)
 features = pd.concat([features_names, features_hrv_time, features_hrv_freq], axis=1)
 
-# Remove all columns, which only have NaN-entries
+# Remove all columns/rows, which only have NaN-entries and bad_sectors
+features = features.drop(index=bad_sector)
 features = features.dropna(axis=1, how="all")
+features = features.dropna(axis=0, how="all", subset=features.iloc[:, 2:].columns)
 
 # Save variable
 features.to_pickle("variables/features")
+np.save("variables/bad_sector.npy", bad_sector)
 
 #%%
 '''
@@ -98,28 +108,29 @@ features = features[features.iloc[:, 1] != "~"]
 features = features[features.iloc[:, 1] != "O"]
 
 # SVM - Train
-X = features.iloc[0:35, 2:16]
-y = features.iloc[0:35, 1]
-X2 = features.iloc[35:48, 2:16]
-y2 = features.iloc[35:48, 1]
-clf = SVC(C=0.01, kernel='rbf', gamma='auto', cache_size=500)
-clf.fit(X, y)
+split = 4000
+X_train = features.iloc[0:split, 2:]
+y_train = features.iloc[0:split, 1]
+X_test = features.iloc[split:, 2:]
+y_test = features.iloc[split:, 1]
+clf = SVC(C=0.1, kernel='rbf', gamma='auto', cache_size=500)
+clf.fit(X_train, y_train)
 dump(clf, "variables/svm_model.joblib")
 
 #%%
 # SVM - Predict
-pred = clf.predict(X2)
-clf.decision_function(X2)
+pred = clf.predict(X_test)
+clf.decision_function(X_test)
 
 #%%
 # SVM - Debug
-clf.score(X2, y2)
+clf.score(X_test, y_test)
 clf.get_params()
 
-#%%
-from sklearn.decomposition import FactorAnalysis
+#%% Get most important features (10, 14, 15, 18, 21, 22, 25, 26)
 pca = PCA(n_components=2)
-pca.fit(X)
-print(pca.components_)
-aa = pd.DataFrame(
-    pca.components_, columns=X.columns, index=['PC-1', 'PC-2'])
+pca.fit(X_train)
+features_series = pd.DataFrame(pca.components_, columns=X_train.columns)
+features_series = features_series.mul(pca.explained_variance_ratio_,axis=0).abs().sum().sort_values(ascending=False)
+ax = features_series.plot.bar(x='', y='', rot=0)
+plt.xticks(rotation=90)
