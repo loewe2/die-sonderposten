@@ -116,12 +116,12 @@ features = features[features.iloc[:, 1] != 3]
 
 #%%
 # SVM - Train
-split = 1000
+split = 3000
 X_train = features.iloc[0:split, 2:]
 y_train = features.iloc[0:split, 1]
 X_test = features.iloc[split:, 2:]
 y_test = features.iloc[split:, 1]
-clf = SVC(C=1, kernel='rbf', gamma='auto', cache_size=500)
+clf = SVC(C=1, kernel='rbf', gamma='auto', cache_size=500, class_weight="balanced")
 clf.fit(X_train, y_train)
 dump(clf, "variables/svm_model.joblib")
 
