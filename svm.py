@@ -133,7 +133,7 @@ clf.decision_function(X_test)
 #%%
 # SVM - Debug
 print("Accuracy: " + str(accuracy_score(y_test, pred)))
-print("Recall: " + str(recall_score(y_test, pred)))
+print("Recall (True positive rate): " + str(recall_score(y_test, pred)))
 print("Precision: " + str(precision_score(y_test, pred)))
 print("F1: " + str(f1_score(y_test, pred)))
 
