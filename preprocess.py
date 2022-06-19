@@ -13,6 +13,8 @@ import matplotlib.pylab as plt
 from skimage.restoration import denoise_wavelet
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
+from scipy.interpolate import interp1d
+from scipy import signal
 
 '''
 Normalize & Outlier
@@ -210,7 +212,7 @@ def ecg_invfurier(data, center=True):
 
 def ecg_ceptrum(data, fs):
     '''# Ceptrum-Transformation
-    INvestigate periodic structures in frequency spectra
+    Investigate periodic structures in frequency spectra
 
     Examples: ecg_ceptrum(data_fft, fs)
     '''
@@ -223,6 +225,29 @@ def ecg_ceptrum(data, fs):
 '''
 More
 '''
+
+def resample(data, res_factor, method='cubic'): 
+    '''# Undersamples/oversamples the data
+    
+    res_factor of 0.5 e.g. downsamples from 300 Hz to 150 Hz
+
+    Source: https://stackoverflow.com/questions/29085268/resample-a-numpy-array
+    
+    Methods:
+    - linear, slinear, cubic, quadratic
+    - furier (can result in problems/oscillations)
+    - nearest, nearest-up, previous, next
+    - zero
+
+    Examples: resample(ecg_leads[2], 0.5, 'linear')
+    '''
+    if method == 'furier':
+        resampled = signal.resample(data, int(len(data)*res_factor))
+    else:
+        xp = np.arange(0, len(data), 1/res_factor)
+        nearest = interp1d(np.arange(len(data)), data, kind='cubic')
+        resampled = nearest(xp)
+    return resampled
 
 def ecg_empty(size, number):
     '''# Creates an empty array based on size

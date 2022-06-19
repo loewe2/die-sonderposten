@@ -3,3 +3,5 @@
 *.npy
 /variables
 /more_data
+/training
+/test
