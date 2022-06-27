@@ -9,3 +9,4 @@ neurokit==0.2.0
 joblib==1.1.0
 statsmodels==0.13.2
 mlxtend==0.20.0
+imbalanced-learn==0.9.1

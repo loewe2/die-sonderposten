@@ -119,7 +119,7 @@ def ecg_denoise_kalman(data, Q=1e-5, R=0.01):
     return yhat
 
 def ecg_denoise_spectrum(fft_centered, freq_idx, lower_freq=0, upper_freq=20, method='gauß'):
-    '''# Lowpass-Filter in frequency domain
+    '''# Bandpass-Filter in frequency domain
     Always run ecg_furier(..., center=True) before and ecg_invfurier(..., center=True) after!!
     "Hard" can create oscillations around 20Hz
 

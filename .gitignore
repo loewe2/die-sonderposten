@@ -7,3 +7,5 @@
 /test
 /more_data
 /ProcessedData
+.ipynb_checkpoints
+.virtual_documents
