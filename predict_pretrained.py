@@ -32,3 +32,5 @@ if __name__ == '__main__':
     
     save_predictions(predictions) # speichert Prädiktion in CSV Datei
     print("Runtime",pred_time,"s")
+
+    
