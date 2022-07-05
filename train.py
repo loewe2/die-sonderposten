@@ -1,19 +1,53 @@
-# -*- coding: utf-8 -*-
-"""
+import csv
+import scipy.io as sio
+import matplotlib.pyplot as plt
+import numpy as np
+from ecgdetectors import Detectors
+import os
+from wettbewerb import load_references
+import tensorflow as tf
+import tensorflow.keras as keras
+import icentiaDataProcessor
+import scipy.signal as siglib
 
-"""
+### if __name__ == '__main__':  # bei multiprocessing auf Windows notwendig
 
-ecg_leads,ecg_labels,fs,ecg_names = load_references() # Importiere EKG-Daten
+ecg_leads,ecg_labels,fs,ecg_names = load_references() # Importiere EKG-Dateien, zugehörige Diagnose, Sampling-Frequenz (Hz) und Name                                                # Sampling-Frequenz 300 Hz
 
-detectors = Detectors(fs)                                 # Initialisierung des QRS-Detektors
-sdnn_normal = np.array([])                                # Initialisierung der Feature-Arrays
-sdnn_afib = np.array([])
-for idx, ecg_lead in enumerate(ecg_leads):
-    r_peaks = detectors.hamilton_detector(ecg_lead)     # Detektion der QRS-Komplexe
-    sdnn = np.std(np.diff(r_peaks)/fs*1000)             # Berechnung der Standardabweichung der Schlag-zu-Schlag Intervalle (SDNN) in Millisekunden
-    if ecg_labels[idx]=='N':
-      sdnn_normal = np.append(sdnn_normal,sdnn)         # Zuordnung zu "Normal"
-    if ecg_labels[idx]=='A':
-      sdnn_afib = np.append(sdnn_afib,sdnn)             # Zuordnung zu "Vorhofflimmern"
-    if (idx % 100)==0:
-      print(str(idx) + "\t EKG Signale wurden verarbeitet.")
+model = keras.models.load_model('spectro.h5') 
+
+spectograms = []
+labels  = []
+for i in range(len(ecg_leads)):
+    signal = ecg_leads[i]
+    signal = np.ravel(signal)
+    signal = icentiaDataProcessor.preprocessData(signal,9000,300,False)
+    f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64)
+    Sxx = 10*np.log10(Sxx+1e-12)
+    Sxx = np.reshape(Sxx, (Sxx.shape[0], Sxx.shape[1], 1))
+    spectograms.append(Sxx)
+    if ecg_labels[i]=='N': # Zuordnung zu "Normal"
+            label=np.asarray([1,0,0,0])
+
+    if ecg_labels[i]=='A':  # Zuordnung zu "Vorhofflimmern"
+            label=np.asarray([0,1,0,0])            
+
+    if ecg_labels[i]=='~':                       
+            label=np.asarray([0,0,1,0])
+                
+    if ecg_labels[i]=='O':#Zuordnung zu "Other"                        
+            label=np.asarray([0,0,0,1])
+    labels.append(label)
+    del f, t, Sxx, label
+spectograms = np.asarray(spectograms)
+labels = np.asarray(labels)
+
+checkpoint_filepath = 'trained_spectogram.h5'
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    monitor='val_accuracy',
+    mode='max',
+    save_best_only=True)
+
+model.fit(spectograms, labels, validation_split=0.2, epochs=10, callbacks=[model_checkpoint_callback])
+

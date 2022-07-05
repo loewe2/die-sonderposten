@@ -19,6 +19,13 @@ import preprocess
 import scipy
 import pickle
 import hrv
+import icentiaDataProcessor
+import scipy.signal as siglib
+from keras.models import Sequential
+import tensorflow.keras as keras
+import tensorflow as tf
+
+
 
 
 ###Signatur der Methode (Parameter und Anzahl return-Werte) darf nicht verändert werden
@@ -46,67 +53,98 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
     '''
 
 #------------------------------------------------------------------------------
-# Euer Code ab hier                                                 # Sampling-Frequenz 300 Hz
-    hrz = hrv.HRV(fs)
-    detectors = Detectors(fs)                                 # Initialisierung des QRS-Detektors
-    sdnn_array = np.array([])                                # Initialisierung der Feature-Arrays
-    mnn_array = np.array([])
-    rrskew_array = np.array([])
-    rrkurt_array = np.array([])
-    sdsd_array = np.array([])
-    hr_array = np.array([])
-    rmssd_array = np.array([])
-    sdann_array = np.array([])
-    pNN20_array = np.array([])
-    pNN50_array = np.array([])
-    NN20_array = np.array([])
-    NN50_array = np.array([])
-    for ecg_lead in ecg_leads:
-            ecg_lead = preprocess.ecg_denoise_kalman(ecg_lead)
-            r_peaks = detectors.pan_tompkins_detector(ecg_lead)     # Detektion der QRS-Komplexe
-            #print(len(r_peaks))
-            sdnn = np.std(np.diff(r_peaks)/fs*1000) 
-            mnn = np.mean(np.diff(r_peaks)/fs*1000)            # Berechnung der Standardabweichung der Schlag-zu-Schlag Intervalle (SDNN) in Millisekunden
-            rrskew = scipy.stats.skew(np.diff(r_peaks)/fs*1000)
-            rrkurt = scipy.stats.kurtosis(np.diff(r_peaks)/fs*1000)
-            sdsd = hrz.SDSD(r_peaks)
-            hr = hrz.HR(r_peaks)
-            rmssd = hrz.RMSSD(r_peaks)
-            if len(r_peaks)>1:
-                pNN20 = hrz.pNN20(r_peaks)
-                pNN50 = hrz.pNN50(r_peaks)
-            else:
-                pNN20 = np.nan
-                pNN50 = np.nan
-            NN20 = hrz.NN20(r_peaks)
-            NN50 = hrz.NN50(r_peaks)
-            #sdann = hrz.SDANN(r_peaks)
-            sdnn_array = np.append(sdnn_array,sdnn)
-            mnn_array = np.append(mnn_array, mnn)
-            rrskew_array = np.append(rrskew_array, rrskew)
-            rrkurt_array = np.append(rrkurt_array, rrkurt)
-            sdsd_array = np.append(sdsd_array, sdsd)
-            hr_array = np.append(hr_array, hr)
-            rmssd_array = np.append(rmssd_array, rmssd)
-            pNN20_array = np.append(pNN20_array, pNN20)
-            pNN50_array = np.append(pNN50_array, pNN50)
-            NN20_array = np.append(NN20_array, NN20)
-            NN50_array = np.append(NN50_array, NN50)
-            #sdann_array = np.append(sdann_array, sdann)
+# Euer Code ab hier  
+    if(model_name == 'spectro'):
+        spectrogram_list = []
+        for ecg_lead in ecg_leads:
+            signal = np.ravel(ecg_lead)
+            signal = icentiaDataProcessor.preprocessData(ecg_lead,9000,300,False)
+            f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64)
+            Sxx = 10*np.log10(Sxx+1e-12)
+            Sxx = np.reshape(Sxx, (Sxx.shape[0], Sxx.shape[1], 1))
+            spectrogram_list.append(Sxx)
+            del f, t, Sxx
+        np_spectogram_list = np.asarray(spectrogram_list)
+        model=keras.models.load_model('spectro.h5')
+        predicted_label = model.predict(np_spectogram_list)
+        predicted_label = np.asarray(predicted_label)
+        predicted_label_return = []
 
-    inputArray = list(zip(sdnn_array, mnn_array, rrskew_array, rrkurt_array, sdsd_array, hr_array, rmssd_array, pNN20_array, pNN50_array, NN20_array, NN50_array))
-    inputArray = np.array(inputArray)
-    inputArray[np.where(np.isfinite(inputArray)==False)] = 0.0
-    loaded_model = pickle.load(open(model_name, 'rb'))
-    results =  loaded_model.predict(inputArray)
-    result= []
-    for k in range(len(results)):
-        if results[k]== 0.0:
-            result.append('N')
-        else:
-            result.append('A')
-    predictions = list(zip(ecg_names, result))
-    #print(predictions)
+        for i in range(len(predicted_label)):
+            index = np.where(predicted_label[i] == np.amax(predicted_label[i]))
+            index = index[0]
+            if(index == 0):
+                predicted_label_return.append('N')
+            if(index == 1):
+                predicted_label_return.append('A')
+            if(index == 2):
+                predicted_label_return.append('~')
+            if(index == 3):
+                predicted_label_return.append('O')
+        predictions = list(zip(ecg_names, predicted_label_return))
+
+
+    elif(model_name == 'tree_model.sav'):
+        hrz = hrv.HRV(fs)
+        detectors = Detectors(fs)                                 # Initialisierung des QRS-Detektors
+        sdnn_array = np.array([])                                # Initialisierung der Feature-Arrays
+        mnn_array = np.array([])
+        rrskew_array = np.array([])
+        rrkurt_array = np.array([])
+        sdsd_array = np.array([])
+        hr_array = np.array([])
+        rmssd_array = np.array([])
+        sdann_array = np.array([])
+        pNN20_array = np.array([])
+        pNN50_array = np.array([])
+        NN20_array = np.array([])
+        NN50_array = np.array([])
+        for ecg_lead in ecg_leads:
+                ecg_lead = preprocess.ecg_denoise_kalman(ecg_lead)
+                r_peaks = detectors.pan_tompkins_detector(ecg_lead)     # Detektion der QRS-Komplexe
+                #print(len(r_peaks))
+                sdnn = np.std(np.diff(r_peaks)/fs*1000) 
+                mnn = np.mean(np.diff(r_peaks)/fs*1000)            # Berechnung der Standardabweichung der Schlag-zu-Schlag Intervalle (SDNN) in Millisekunden
+                rrskew = scipy.stats.skew(np.diff(r_peaks)/fs*1000)
+                rrkurt = scipy.stats.kurtosis(np.diff(r_peaks)/fs*1000)
+                sdsd = hrz.SDSD(r_peaks)
+                hr = hrz.HR(r_peaks)
+                rmssd = hrz.RMSSD(r_peaks)
+                if len(r_peaks)>1:
+                    pNN20 = hrz.pNN20(r_peaks)
+                    pNN50 = hrz.pNN50(r_peaks)
+                else:
+                    pNN20 = np.nan
+                    pNN50 = np.nan
+                NN20 = hrz.NN20(r_peaks)
+                NN50 = hrz.NN50(r_peaks)
+                #sdann = hrz.SDANN(r_peaks)
+                sdnn_array = np.append(sdnn_array,sdnn)
+                mnn_array = np.append(mnn_array, mnn)
+                rrskew_array = np.append(rrskew_array, rrskew)
+                rrkurt_array = np.append(rrkurt_array, rrkurt)
+                sdsd_array = np.append(sdsd_array, sdsd)
+                hr_array = np.append(hr_array, hr)
+                rmssd_array = np.append(rmssd_array, rmssd)
+                pNN20_array = np.append(pNN20_array, pNN20)
+                pNN50_array = np.append(pNN50_array, pNN50)
+                NN20_array = np.append(NN20_array, NN20)
+                NN50_array = np.append(NN50_array, NN50)
+                #sdann_array = np.append(sdann_array, sdann)
+
+        inputArray = list(zip(sdnn_array, mnn_array, rrskew_array, rrkurt_array, sdsd_array, hr_array, rmssd_array, pNN20_array, pNN50_array, NN20_array, NN50_array))
+        inputArray = np.array(inputArray)
+        inputArray[np.where(np.isfinite(inputArray)==False)] = 0.0
+        loaded_model = pickle.load(open(model_name, 'rb'))
+        results =  loaded_model.predict(inputArray)
+        result= []
+        for k in range(len(results)):
+            if results[k]== 0.0:
+                result.append('N')
+            else:
+                result.append('A')
+        predictions = list(zip(ecg_names, result))
+    #     #print(predictions)
 
 #------------------------------------------------------------------------------    
     return predictions # Liste von Tupels im Format (ecg_name,label) - Muss unverändert bleiben!
