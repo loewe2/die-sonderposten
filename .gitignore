@@ -2,6 +2,8 @@
 .vscode
 *.npy
 /variables
+/Preproces
+/ProcessedData
 /more_data
 /training
 /test
