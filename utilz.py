@@ -12,7 +12,7 @@ def predictions_score(y_true_path, y_pred_path):
     y_true = enc.transform(y_true_all[1].values.reshape(-1,1)).toarray()
     y_pred = enc.transform(y_pred_all[1].values.reshape(-1,1)).toarray()
 
-    f1 = f1_score(y_true, y_pred, average='micro')
+    f1 = f1_score(y_true, y_pred, average='weighted')
     acc = accuracy_score(y_true, y_pred)
     
     return (f1, acc)
