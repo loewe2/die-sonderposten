@@ -63,7 +63,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
             spectrogram_list.append(Sxx)
             del f, t, Sxx
         np_spectogram_list = np.asarray(spectrogram_list)
-        model=keras.models.load_model('spectro.h5')
+        model=keras.models.load_model('crossval3.h5')
         predicted_label = model.predict(np_spectogram_list)
         predicted_label = np.asarray(predicted_label)
         predicted_label_return = []
@@ -75,14 +75,14 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
                 predicted_label_return.append('N')
             if(index == 1):
                 predicted_label_return.append('A')
-            if(index == 2):
-                predicted_label_return.append('~')
-            if(index == 3):
-                predicted_label_return.append('O')
+            # if(index == 2):
+            #     predicted_label_return.append('~')
+            # if(index == 3):
+            #     predicted_label_return.append('O')
         predictions = list(zip(ecg_names, predicted_label_return))
 
 
-    elif(model_name == 'tree_model.sav'):
+    elif(model_name == 'gs_grabost.sav'):
         hrz = hrv.HRV(fs)
         detectors = Detectors(fs)                                 # Initialisierung des QRS-Detektors
         sdnn_array = np.array([])                                # Initialisierung der Feature-Arrays
@@ -135,6 +135,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
         inputArray[np.where(np.isfinite(inputArray)==False)] = 0.0
         loaded_model = pickle.load(open(model_name, 'rb'))
         results =  loaded_model.predict(inputArray)
+        results = np.rint(results)
         result= []
         for k in range(len(results)):
             if results[k]== 0.0:
