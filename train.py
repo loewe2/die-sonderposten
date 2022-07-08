@@ -9,45 +9,59 @@ import tensorflow as tf
 import tensorflow.keras as keras
 import icentiaDataProcessor
 import scipy.signal as siglib
-
+import xgboost as xgb
+import warnings
+import utilz
+import neurokit2 as nk
+import pandas as pd
+import pickle
+from sklearn.model_selection import train_test_split
 ### if __name__ == '__main__':  # bei multiprocessing auf Windows notwendig
 
 ecg_leads,ecg_labels,fs,ecg_names = load_references() # Importiere EKG-Dateien, zugehörige Diagnose, Sampling-Frequenz (Hz) und Name                                                # Sampling-Frequenz 300 Hz
 
-model = keras.models.load_model('spectro.h5') 
+warnings.filterwarnings('ignore')
+fs = fs 
+analyzed_list = []
+with open('dftemplate.pkl','rb') as target:
+        dftemplate = pickle.load(target)
+base_dataframe = pd.read_pickle('./base_dataframe.pkl')
+for ecg_lead, ecg_label, ecg_name in zip(ecg_leads, ecg_labels, ecg_names):
+        signal = ecg_lead    
+        if(ecg_label=='N' or ecg_label=='A'):
+            try:
+                signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit')
+                analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
+                own = utilz.ownFeatures(signals)
+                analyzed = pd.concat([analyzed,own], axis=1)
+                analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
+                analyzed = pd.concat([dftemplate,analyzed], axis=0)
+                analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
+                analyzed['TYPE'] = ''
+                if ecg_label=='N':
+                    analyzed['TYPE'] = 'N'        # Zuordnung zu "Normal"
+                if ecg_label=='A':
+                    analyzed['TYPE'] = 'A'             # Zuordnung zu "Vorhofflimmern"
+                analyzed_list.append(analyzed)
+            except:
+                print('One sample that could not be used for training!')
+df = pd.concat(analyzed_list, axis=0)
+df = df.sample(frac=1).reset_index(drop=True)
+df = df.replace('N', 0)
+df = df.replace('A', 1)
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+numtyp0 = len(df[df['TYPE']==0]['TYPE'])
+numtyp1 = len(df[df['TYPE']==1]['TYPE'])
+weight = numtyp0 / numtyp1
+y_comp = df['TYPE']
+X_comp = df.drop('TYPE', axis=1)
+X_train, X_test, y_train, y_test = train_test_split(X_comp, y_comp, test_size=0.2, random_state=99, shuffle=True)
+model = xgb.XGBClassifier(scale_pos_weight =weight)
+model.load_model('xgboost_abgabe.json')
+model.fit(X_train,y_train)
+predict = model.predict(X_test)
+accuracy= float(np.sum(predict==y_test))/y_test.shape[0]
+print(accuracy)
+model.save_model('xgboost_trained.json')
 
-spectograms = []
-labels  = []
-for i in range(len(ecg_leads)):
-    signal = ecg_leads[i]
-    signal = np.ravel(signal)
-    signal = icentiaDataProcessor.preprocessData(signal,9000,300,False)
-    f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64)
-    Sxx = 10*np.log10(Sxx+1e-12)
-    Sxx = np.reshape(Sxx, (Sxx.shape[0], Sxx.shape[1], 1))
-    spectograms.append(Sxx)
-    if ecg_labels[i]=='N': # Zuordnung zu "Normal"
-            label=np.asarray([1,0,0,0])
-
-    if ecg_labels[i]=='A':  # Zuordnung zu "Vorhofflimmern"
-            label=np.asarray([0,1,0,0])            
-
-    if ecg_labels[i]=='~':                       
-            label=np.asarray([0,0,1,0])
-                
-    if ecg_labels[i]=='O':#Zuordnung zu "Other"                        
-            label=np.asarray([0,0,0,1])
-    labels.append(label)
-    del f, t, Sxx, label
-spectograms = np.asarray(spectograms)
-labels = np.asarray(labels)
-
-checkpoint_filepath = 'trained_spectogram.h5'
-model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_filepath,
-    monitor='val_accuracy',
-    mode='max',
-    save_best_only=True)
-
-model.fit(spectograms, labels, validation_split=0.2, epochs=10, callbacks=[model_checkpoint_callback])
 

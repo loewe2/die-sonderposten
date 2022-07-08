@@ -9,7 +9,6 @@ Skript testet das vortrainierte Modell
 
 import csv
 import scipy.io as sio
-import matplotlib.pyplot as plt
 import numpy as np
 from ecgdetectors import Detectors
 import os
@@ -24,7 +23,11 @@ import scipy.signal as siglib
 from keras.models import Sequential
 import tensorflow.keras as keras
 import tensorflow as tf
-
+import neurokit2 as nk
+import utilz
+import pandas as pd
+import xgboost as xgb
+import warnings
 
 ###Signatur der Methode (Parameter und Anzahl return-Werte) darf nicht verändert werden
 def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[str], model_name : str='tree_model.sav',is_binary_classifier : bool=False) -> List[Tuple[str,str]]:
@@ -63,7 +66,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
             spectrogram_list.append(Sxx)
             del f, t, Sxx
         np_spectogram_list = np.asarray(spectrogram_list)
-        model=keras.models.load_model('spectro.h5')
+        model=keras.models.load_model('crossval3.h5')
         predicted_label = model.predict(np_spectogram_list)
         predicted_label = np.asarray(predicted_label)
         predicted_label_return = []
@@ -75,10 +78,10 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
                 predicted_label_return.append('N')
             if(index == 1):
                 predicted_label_return.append('A')
-            if(index == 2):
-                predicted_label_return.append('~')
-            if(index == 3):
-                predicted_label_return.append('O')
+            # if(index == 2):
+            #     predicted_label_return.append('~')
+            # if(index == 3):
+            #     predicted_label_return.append('O')
         predictions = list(zip(ecg_names, predicted_label_return))
 
 
@@ -135,6 +138,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
         inputArray[np.where(np.isfinite(inputArray)==False)] = 0.0
         loaded_model = pickle.load(open(model_name, 'rb'))
         results =  loaded_model.predict(inputArray)
+        results = np.rint(results)
         result= []
         for k in range(len(results)):
             if results[k]== 0.0:
@@ -142,6 +146,33 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
             else:
                 result.append('A')
         predictions = list(zip(ecg_names, result))
+    
+    elif(model_name == 'xgboost_abgabe.json'):
+        warnings.filterwarnings('ignore')
+        with open('dftemplate.pkl','rb') as target:
+            dftemplate = pickle.load(target)
+        model = xgb.XGBClassifier()
+        model.load_model(model_name)
+        base_dataframe = pd.read_pickle('./base_dataframe.pkl')
+        results = []
+        for ecg_lead in ecg_leads:
+            signal = ecg_lead
+            try:
+                signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit')
+                analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
+                own = utilz.ownFeatures(signals)
+                analyzed = pd.concat([analyzed,own], axis=1)
+                analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
+                analyzed = pd.concat([dftemplate,analyzed], axis=0)
+                analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
+                prediction = model.predict(analyzed)
+                if(prediction == 0):
+                    results.append('N')
+                else:
+                    results.append('A')
+            except:
+                results.append('N')
+        predictions = list(zip(ecg_names, results))
     #     #print(predictions)
 
 #------------------------------------------------------------------------------    
