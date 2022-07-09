@@ -4,6 +4,7 @@
 Alle Daten zur finalen Abgabe finden Sie im Hauptordner. Das zentrale Notebook, in dem das Model erstellt und trainiert wurde ist 'XGBoost.ipynb'. Hinzu kommen Hilfsfunktionen in 'utilz.py' und die für die Abgabe relevanten Dateien (z.B.: predict.py/train.py).
 Die XGBoost-Modelle wurden in JSON-Files gespeichert. Das Modell zur 4. Abgabe ist 'xgboost_abgabe.json', das Modell der finalen (5.) Abgabe ist 'xgboost_augmented.json'.
 Für die finale Abgabe haben wir die Trainngsdaten zusätzlich augmented, daher gehören hierzu die Trainingsdaten: 'Neurokit_Dataset_augmented.pkl', 'MIT_Dataset_augmented.pkl'.
+
 Im Notebook 'xgbfeatures.ipynb' haben wir analyisert welche Feature besonders Aussagekräftig für unser Modell sind, da dies auch Anhaltspunkte für das Verständnis eines Ergebnisses liefern kann und ob diese (anhand gäniger Korrelationskoeffizienten) direkt mit dem Typ des Signals (Afib/Normal) korellieren.
 In der Datei 'dftemplate.pkl' befindet sich eine Vorlage, die die korrekte Übergabe der Feature an das Modell sicherstellt.
 
