@@ -8,11 +8,10 @@ In der Datei 'dftemplate.pkl' befindet sich eine Vorlage, die die korrekte Über
 
 ## Versuche
 Wir haben diverse Modelle ausprobiert, diese Versuche befinden sich je nach Modell-Typ in den jeweiligen Ordnern in Jupyter-Notebooks:
-Markup :
-    * CNN-Models
-        * Diverse CNNs auf Basis von Spectrogrammen (2. Abgabe) und 1DCNNs zur direkten Anwendung auf die Signale
-    * Tree_Forest_Models
-        * Decision Trees (1. Abgabe), Random Forests, Gradient Boosted Trees (3. Abgabe)
+Markup :    * CNN-Models
+                * Diverse CNNs auf Basis von Spectrogrammen (2. Abgabe) und 1DCNNs zur direkten Anwendung auf die Signale
+            * Tree_Forest_Models
+                 * Decision Trees (1. Abgabe), Random Forests, Gradient Boosted Trees (3. Abgabe)
 
 ## Daten
 Wir haben neben dem zur Verfügung gestellten Datensatz zusätzlich noch auf den MIT-BIH Atrial Fibrillation Datensatz trainiert und getestet. Einige der CNN-Modelle haben wir auch mittels des Icentia11k Datensatzes auf dem KIS*MED-JupyterHub pretrained, die Vorverarbeitung hierzu finden Sie im Ordner 'CNN-Models'.
