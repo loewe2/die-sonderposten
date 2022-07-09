@@ -8,6 +8,8 @@ In der Datei 'dftemplate.pkl' befindet sich eine Vorlage, die die korrekte Über
 
 ## Versuche
 Wir haben diverse Modelle ausprobiert, diese Versuche befinden sich je nach Modell-Typ in den jeweiligen Ordnern in Jupyter-Notebooks:
+
+Markup:
     - CNN-Models
         - Diverse CNNs auf Basis von Spectrogrammen (2. Abgabe) und 1DCNNs zur direkten Anwendung auf die Signale
     - Tree_Forest_Models
