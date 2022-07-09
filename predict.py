@@ -14,11 +14,11 @@ from ecgdetectors import Detectors
 import os
 from typing import List, Tuple
 
-import preprocess
+import CNNModels.preprocess
 import scipy
 import pickle
 import hrv
-import icentiaDataProcessor
+import CNNModels.icentiaDataProcessor
 import scipy.signal as siglib
 from keras.models import Sequential
 import tensorflow.keras as keras

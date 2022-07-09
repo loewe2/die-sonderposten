@@ -7,7 +7,6 @@ import os
 from wettbewerb import load_references
 import tensorflow as tf
 import tensorflow.keras as keras
-import icentiaDataProcessor
 import scipy.signal as siglib
 import xgboost as xgb
 import warnings
@@ -26,7 +25,7 @@ from sklearn.model_selection import train_test_split
 
 ecg_leads,ecg_labels,fs,ecg_names = load_references() # Importiere EKG-Dateien, zugehörige Diagnose, Sampling-Frequenz (Hz) und Name                                                # Sampling-Frequenz 300 Hz
 
-augment_signals = True   #change this variable if you want to process the data without augmentation
+augment_signals = True  #change this variable if you want to process the data without augmentation
 
 warnings.filterwarnings('ignore') #Neurokit throws some warnings if signals are short, this helps to suppress them.
 analyzed_list = []
@@ -43,6 +42,8 @@ for ecg_lead, ecg_label, ecg_name in zip(ecg_leads, ecg_labels, ecg_names):
                     for i in range(3):
                         signal_list.append(utilz.augment_signal(signal,fs)) #augmenting each imported signal 3 times 
                         i = i+1
+                        if(i == 3):
+                            print('done augmenting')
                 for signal in signal_list: #extracting the features and saving them in a dataframe
                     signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit') #processing done by neurokit2
                     analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
@@ -71,6 +72,8 @@ df.replace([np.inf, -np.inf], np.nan, inplace=True)
 #calcultaing the ratio of afib to normal-type signals
 numtyp0 = len(df[df['TYPE']==0]['TYPE'])
 numtyp1 = len(df[df['TYPE']==1]['TYPE'])
+if(numtyp1 == 0):
+    numtyp1 = 0.1
 weight = numtyp0 / numtyp1
 #create a label array and a data array
 y_comp = df['TYPE']
