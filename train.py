@@ -20,6 +20,8 @@ from sklearn.model_selection import train_test_split
 
 ecg_leads,ecg_labels,fs,ecg_names = load_references() # Importiere EKG-Dateien, zugehörige Diagnose, Sampling-Frequenz (Hz) und Name                                                # Sampling-Frequenz 300 Hz
 
+augment_signals = True
+
 warnings.filterwarnings('ignore')
 fs = fs 
 analyzed_list = []
@@ -30,19 +32,26 @@ for ecg_lead, ecg_label, ecg_name in zip(ecg_leads, ecg_labels, ecg_names):
         signal = ecg_lead    
         if(ecg_label=='N' or ecg_label=='A'):
             try:
-                signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit')
-                analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
-                own = utilz.ownFeatures(signals)
-                analyzed = pd.concat([analyzed,own], axis=1)
-                analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
-                analyzed = pd.concat([dftemplate,analyzed], axis=0)
-                analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
-                analyzed['TYPE'] = ''
-                if ecg_label=='N':
-                    analyzed['TYPE'] = 'N'        # Zuordnung zu "Normal"
-                if ecg_label=='A':
-                    analyzed['TYPE'] = 'A'             # Zuordnung zu "Vorhofflimmern"
-                analyzed_list.append(analyzed)
+                signal_list = []
+                signal_list.append(signal)
+                if(augment_singnals):
+                    for i in range(3):
+                        signal_list.append(utilz.augment_signal(signal,fs))
+                        i = i+1
+                for signal in signal_list:
+                    signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit')
+                    analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
+                    own = utilz.ownFeatures(signals)
+                    analyzed = pd.concat([analyzed,own], axis=1)
+                    analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
+                    analyzed = pd.concat([dftemplate,analyzed], axis=0)
+                    analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
+                    analyzed['TYPE'] = ''
+                    if ecg_label=='N':
+                        analyzed['TYPE'] = 'N'        # Zuordnung zu "Normal"
+                    if ecg_label=='A':
+                        analyzed['TYPE'] = 'A'             # Zuordnung zu "Vorhofflimmern"
+                    analyzed_list.append(analyzed)
             except:
                 print('One sample that could not be used for training!')
 df = pd.concat(analyzed_list, axis=0)

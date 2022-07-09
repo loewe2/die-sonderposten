@@ -147,7 +147,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
                 result.append('A')
         predictions = list(zip(ecg_names, result))
     
-    elif(model_name == 'xgboost_abgabe.json'):
+    elif(model_name == 'xgboost_augmented.json'):
         warnings.filterwarnings('ignore')
         with open('dftemplate.pkl','rb') as target:
             dftemplate = pickle.load(target)
