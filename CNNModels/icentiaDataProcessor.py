@@ -1,4 +1,4 @@
-import icentia11k_make_wfdb as wfdbcreator
+import CNNModels.icentia11k_make_wfdb as wfdbcreator
 import numpy as np
 import random
 import scipy.signal as siglib
