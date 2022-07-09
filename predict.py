@@ -54,19 +54,52 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
     '''
 
 #------------------------------------------------------------------------------
-# Euer Code ab hier  
-    if(model_name == 'spectro'):
+# Euer Code ab hier 
+#   predict with the xgboost models that are used in the final submission 
+    if(model_name == 'xgboost_augmented.json'):
+        warnings.filterwarnings('ignore')
+        with open('dftemplate.pkl','rb') as target:
+            dftemplate = pickle.load(target) #import the template datafarme
+        #load the model
+        model = xgb.XGBClassifier()
+        model.load_model(model_name)
+        base_dataframe = pd.read_pickle('./base_dataframe.pkl')
+        results = []
+        for ecg_lead in ecg_leads:
+            signal = ecg_lead
+            #try to analyze the data with neurokit and calculate our additional features
+            try:
+                signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit') #preprocess with neurokit
+                analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
+                own = utilz.ownFeatures(signals) #calculate additional features
+                #create a dataframe for the prediction by using the template dataframe to ensure correct order and number of features
+                analyzed = pd.concat([analyzed,own], axis=1)
+                analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
+                analyzed = pd.concat([dftemplate,analyzed], axis=0)
+                analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
+                #predict with model
+                prediction = model.predict(analyzed)
+                if(prediction == 0):
+                    results.append('N')
+                else:
+                    results.append('A')
+            except:
+                results.append('N') #if the signal could not be analyzed with neurokit mark it as normal
+        predictions = list(zip(ecg_names, results))
+    
+    # predict with the spectrogram cnns
+    elif(model_name == 'spectro'):
         spectrogram_list = []
         for ecg_lead in ecg_leads:
             signal = np.ravel(ecg_lead)
-            signal = icentiaDataProcessor.preprocessData(ecg_lead,9000,300,False)
-            f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64)
-            Sxx = 10*np.log10(Sxx+1e-12)
+            signal = icentiaDataProcessor.preprocessData(ecg_lead,9000,300,False) #preprocess data cutting or extending every signal to 9000 sample
+            f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64) #creating the spectogram
+            Sxx = 10*np.log10(Sxx+1e-12) #creating log scale
             Sxx = np.reshape(Sxx, (Sxx.shape[0], Sxx.shape[1], 1))
             spectrogram_list.append(Sxx)
             del f, t, Sxx
         np_spectogram_list = np.asarray(spectrogram_list)
-        model=keras.models.load_model('crossval3.h5')
+        model=keras.models.load_model('crossval3.h5') #load a model
         predicted_label = model.predict(np_spectogram_list)
         predicted_label = np.asarray(predicted_label)
         predicted_label_return = []
@@ -78,14 +111,11 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
                 predicted_label_return.append('N')
             if(index == 1):
                 predicted_label_return.append('A')
-            # if(index == 2):
-            #     predicted_label_return.append('~')
-            # if(index == 3):
-            #     predicted_label_return.append('O')
         predictions = list(zip(ecg_names, predicted_label_return))
 
-
+    #predict with the tree_model.sav (can also be used for the gs_grabost.sav model)
     elif(model_name == 'tree_model.sav'):
+        #calculating the different features
         hrz = hrv.HRV(fs)
         detectors = Detectors(fs)                                 # Initialisierung des QRS-Detektors
         sdnn_array = np.array([])                                # Initialisierung der Feature-Arrays
@@ -146,33 +176,6 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
             else:
                 result.append('A')
         predictions = list(zip(ecg_names, result))
-    
-    elif(model_name == 'xgboost_augmented.json'):
-        warnings.filterwarnings('ignore')
-        with open('dftemplate.pkl','rb') as target:
-            dftemplate = pickle.load(target)
-        model = xgb.XGBClassifier()
-        model.load_model(model_name)
-        base_dataframe = pd.read_pickle('./base_dataframe.pkl')
-        results = []
-        for ecg_lead in ecg_leads:
-            signal = ecg_lead
-            try:
-                signals, info = nk.ecg_process(signal, sampling_rate=fs, method='neurokit')
-                analyzed = nk.ecg_analyze(signals, sampling_rate=fs)
-                own = utilz.ownFeatures(signals)
-                analyzed = pd.concat([analyzed,own], axis=1)
-                analyzed.replace([np.inf, -np.inf], np.nan, inplace=True)
-                analyzed = pd.concat([dftemplate,analyzed], axis=0)
-                analyzed = analyzed[dftemplate.columns.to_list()].iloc[1].to_frame().T
-                prediction = model.predict(analyzed)
-                if(prediction == 0):
-                    results.append('N')
-                else:
-                    results.append('A')
-            except:
-                results.append('N')
-        predictions = list(zip(ecg_names, results))
     #     #print(predictions)
 
 #------------------------------------------------------------------------------    
