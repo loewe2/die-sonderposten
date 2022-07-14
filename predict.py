@@ -92,7 +92,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
         spectrogram_list = []
         for ecg_lead in ecg_leads:
             signal = np.ravel(ecg_lead)
-            signal = icentiaDataProcessor.preprocessData(ecg_lead,9000,300,False) #preprocess data cutting or extending every signal to 9000 sample
+            signal = CNNModels.icentiaDataProcessor.preprocessData(ecg_lead,9000,300,False) #preprocess data cutting or extending every signal to 9000 sample
             f, t, Sxx = siglib.spectrogram(signal, fs=300, nfft=512, nperseg=64) #creating the spectogram
             Sxx = 10*np.log10(Sxx+1e-12) #creating log scale
             Sxx = np.reshape(Sxx, (Sxx.shape[0], Sxx.shape[1], 1))
@@ -131,7 +131,7 @@ def predict_labels(ecg_leads : List[np.ndarray], fs : float, ecg_names : List[st
         NN20_array = np.array([])
         NN50_array = np.array([])
         for ecg_lead in ecg_leads:
-                ecg_lead = preprocess.ecg_denoise_kalman(ecg_lead)
+                ecg_lead = CNNModels.preprocess.ecg_denoise_kalman(ecg_lead)
                 r_peaks = detectors.pan_tompkins_detector(ecg_lead)     # Detektion der QRS-Komplexe
                 #print(len(r_peaks))
                 sdnn = np.std(np.diff(r_peaks)/fs*1000) 
